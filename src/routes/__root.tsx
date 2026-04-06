@@ -16,13 +16,60 @@ export const Route = createRootRoute({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Start Starter',
+        title: 'CEF Viewer',
+      },
+      {
+        name: 'description',
+        content:
+          'Parse and explore Common Event Format (CEF) messages locally in your browser.',
+      },
+      {
+        name: 'theme-color',
+        content: '#1565c0',
+      },
+      {
+        property: 'og:title',
+        content: 'CEF Viewer',
+      },
+      {
+        property: 'og:description',
+        content:
+          'Parse and explore Common Event Format (CEF) messages locally in your browser.',
+      },
+      {
+        property: 'og:image',
+        content: '/icon.png',
+      },
+      {
+        name: 'twitter:card',
+        content: 'summary',
+      },
+      {
+        name: 'twitter:title',
+        content: 'CEF Viewer',
+      },
+      {
+        name: 'twitter:image',
+        content: '/icon.png',
       },
     ],
     links: [
       {
         rel: 'stylesheet',
         href: appCss,
+      },
+      {
+        rel: 'icon',
+        type: 'image/png',
+        href: '/icon.png',
+      },
+      {
+        rel: 'apple-touch-icon',
+        href: '/icon.png',
+      },
+      {
+        rel: 'manifest',
+        href: '/manifest.json',
       },
     ],
   }),
