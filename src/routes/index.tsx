@@ -5,10 +5,9 @@ import { scrollTextareaRangeIntoView } from "#/lib/scrollTextareaRangeIntoView";
 
 export const Route = createFileRoute("/")({ component: App });
 
-const SAMPLE_CEF = `CEF:0|security|threatmanager|1.0|100|detected an equal sign ("=") in extension value|10|src=10.0.0.1 act=blocked a equal \\= dst=1.1.1.1 rt=1234567890000`;
 
 function App() {
-	const [message, setMessage] = useState(SAMPLE_CEF);
+	const [message, setMessage] = useState('');
 	const [showComments, setShowComments] = useState(true);
 	const messageInputRef = useRef<HTMLTextAreaElement>(null);
 
