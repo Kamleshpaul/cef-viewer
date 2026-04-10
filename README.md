@@ -4,6 +4,10 @@ Browser-based viewer for **Common Event Format (CEF)** strings. Paste or edit an
 
 Branding uses `public/icon.png` for the in-app header, favicon, Apple touch icon, web app manifest, and social preview meta tags.
 
+## Disclaimer
+
+This project was largely **vibe-coded with AI assistance**. Your CEF text and parsed results stay **in the browser**: **no log data is sent to any remote server** for parsing or viewing when you use the built app offline or locally. (Installing packages or opening external links during development still uses the network as usual.)
+
 ## Requirements
 
 - [Bun](https://bun.sh/)
