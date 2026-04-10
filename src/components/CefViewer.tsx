@@ -1,7 +1,7 @@
 import { useMemo, useCallback, useId } from 'react'
 import dictionaryRaw from '../data/extension-dictionary.json'
+import { type ExtensionDictionary, prepareCefDisplay } from '../lib/cefDisplay'
 import { parseCEF } from '../lib/cefParser'
-import { prepareCefDisplay, type ExtensionDictionary } from '../lib/cefDisplay'
 import './CefViewer.css'
 
 const DICTIONARY = dictionaryRaw as unknown as ExtensionDictionary
@@ -71,31 +71,17 @@ export default function CefViewer({
       </header>
       <div className="cef-shell">
         <div id={tableDomId} className="cef-export-root">
-          <section className="cef-raw-dock" aria-label="Raw event message">
-            <div className="cef-raw-dock-grid">
-              <div className="cef-raw-dock-label">Raw</div>
-              <textarea
-                className="app-cef-input cef-raw-dock-textarea"
-                value={message}
-                readOnly
-                spellCheck={false}
-                autoComplete="off"
-                rows={3}
-                aria-label="Raw CEF line (read-only)"
-              />
-              {cef.errors.length > 0 ? (
-                <ul className="cef-raw-dock-errors">
-                  {cef.errors.map((err, i) => (
-                    <li key={`${i}-${err}`} className="status_error">
-                      {err}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="cef-raw-dock-errors cef-raw-dock-errors--empty" />
-              )}
-            </div>
-          </section>
+          {cef.errors.length > 0 ? (
+            <section className="cef-raw-dock" aria-label="Parse errors">
+              <ul className="cef-raw-dock-errors">
+                {cef.errors.map((err, i) => (
+                  <li key={`${i}-${err}`} className="status_error">
+                    {err}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
           <section className="cef-table-block" aria-label="Parsed CEF fields">
             <table className="cef-table">
               {colgroup}

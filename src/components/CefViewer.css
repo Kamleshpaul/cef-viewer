@@ -39,7 +39,7 @@
 
 .cef-raw-dock-grid {
   display: grid;
-  grid-template-columns: 9.5rem 1fr minmax(220px, 32%);
+  grid-template-columns: 16rem 1fr minmax(220px, 32%);
   min-width: 640px;
   width: 100%;
 }
@@ -98,7 +98,7 @@
 }
 
 .cef-col-field {
-  width: 9.5rem;
+  width: 16rem;
 }
 
 .cef-col-value {
@@ -125,8 +125,10 @@
   font-weight: 600;
   color: var(--ev-c-text-1);
   background: #f3f3f3;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   width: 1%;
+  min-width: 0;
 }
 
 .cef-table td:last-child,

@@ -196,11 +196,8 @@ export function prepareCefDisplay(cef: ParsedCef, dictionary: ExtensionDictionar
 
       return item
     })
-    .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
 
-  const extensionsByLabelSorted = extensionsSorted
-    .filter((elem) => elem.label)
-    .sort((a, b) => (a.label! < b.label! ? -1 : a.label! > b.label! ? 1 : 0))
+  const extensionsByLabelSorted = extensionsSorted.filter((elem) => elem.label)
 
   return {
     ...cef,

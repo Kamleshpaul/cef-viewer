@@ -28,6 +28,28 @@ export function unescapeCefValue(value: string): string {
   )
 }
 
+function skipExtensionPairSeparators(input: string, pos: number): number {
+  let j = pos
+  while (j < input.length) {
+    const c = input.charAt(j)
+    if (c === ' ' || c === '\t') {
+      j++
+      continue
+    }
+    if (c === '|') {
+      j++
+      while (j < input.length && (input[j] === ' ' || input[j] === '\t')) j++
+      continue
+    }
+    break
+  }
+  return j
+}
+
+function trimExtensionValueTrailingSeparators(raw: string): string {
+  return raw.replace(/(?:[\s\t]|\|)+$/u, '')
+}
+
 export function parseCEF(input: string): ParsedCef {
   const obj: ParsedCef = {
     extensions: {},
@@ -84,8 +106,10 @@ export function parseCEF(input: string): ParsedCef {
   while (i < input.length) {
     switch (input[i]) {
       case ' ':
-        i++
-        startKeyValuePair = i
+      case '\t':
+      case '|':
+        startKeyValuePair = skipExtensionPairSeparators(input, i + 1)
+        i = startKeyValuePair
         break
       case '=':
         if (!foundfirstKeyValueSeparator) {
@@ -94,12 +118,14 @@ export function parseCEF(input: string): ParsedCef {
           if (key in obj.extensions) {
             obj.errors.push(`Duplicate '${key}' extension. Ignoring subsequent instances.`)
           } else if (quoted) {
-            obj.extensions[key] = unescapeCefValue(
-              input.substring(startValue, startKeyValuePair - 1)
+            obj.extensions[key] = trimExtensionValueTrailingSeparators(
+              unescapeCefValue(input.substring(startValue, startKeyValuePair - 1))
             )
             quoted = false
           } else {
-            obj.extensions[key] = input.substring(startValue, startKeyValuePair - 1)
+            obj.extensions[key] = trimExtensionValueTrailingSeparators(
+              input.substring(startValue, startKeyValuePair - 1)
+            )
           }
         }
         key = input.substring(startKeyValuePair, i)
@@ -119,9 +145,11 @@ export function parseCEF(input: string): ParsedCef {
     if (key in obj.extensions) {
       obj.errors.push(`Duplicate '${key}' extension. Ignoring subsequent instances.`)
     } else if (quoted) {
-      obj.extensions[key] = unescapeCefValue(input.substring(startValue, i))
+      obj.extensions[key] = trimExtensionValueTrailingSeparators(
+        unescapeCefValue(input.substring(startValue, i))
+      )
     } else {
-      obj.extensions[key] = input.substring(startValue, i)
+      obj.extensions[key] = trimExtensionValueTrailingSeparators(input.substring(startValue, i))
     }
   }
 
