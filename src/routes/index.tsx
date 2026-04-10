@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import CefViewer from "#/components/CefViewer";
+import { scrollTextareaRangeIntoView } from "#/lib/scrollTextareaRangeIntoView";
 
 export const Route = createFileRoute("/")({ component: App });
 
@@ -9,6 +10,20 @@ const SAMPLE_CEF = `CEF:0|security|threatmanager|1.0|100|detected an equal sign 
 function App() {
 	const [message, setMessage] = useState(SAMPLE_CEF);
 	const [showComments, setShowComments] = useState(true);
+	const messageInputRef = useRef<HTMLTextAreaElement>(null);
+
+	const highlightMessageRange = useCallback((start: number, end: number) => {
+		const el = messageInputRef.current;
+		if (!el) return;
+		el.focus();
+		const len = el.value.length;
+		const a = Math.max(0, Math.min(start, len));
+		const b = Math.max(a, Math.min(end, len));
+		el.setSelectionRange(a, b);
+		requestAnimationFrame(() => {
+			scrollTextareaRangeIntoView(el, a, b);
+		});
+	}, []);
 
 	return (
 		<main className="app-shell">
@@ -39,6 +54,7 @@ function App() {
 						<span className="app-pane-head-title">Event message</span>
 					</header>
 					<textarea
+						ref={messageInputRef}
 						id="cef-input"
 						className="app-cef-input"
 						value={message}
@@ -58,6 +74,7 @@ function App() {
 						message={message}
 						showComments={showComments}
 						onShowCommentsChange={setShowComments}
+						onHighlightMessageRange={highlightMessageRange}
 					/>
 				</section>
 			</div>

@@ -1,7 +1,7 @@
-import { useMemo, useCallback, useId } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import dictionaryRaw from '../data/extension-dictionary.json'
 import { type ExtensionDictionary, prepareCefDisplay } from '../lib/cefDisplay'
-import { parseCEF } from '../lib/cefParser'
+import { type CefCharRange, type CefHeaderKey, parseCEF } from '../lib/cefParser'
 import './CefViewer.css'
 
 const DICTIONARY = dictionaryRaw as unknown as ExtensionDictionary
@@ -21,21 +21,55 @@ function timestampNotice(key: string, value: unknown): string | null {
   return new Date(Number(value)).toISOString()
 }
 
+function trimHighlightEnd(message: string, range: CefCharRange): CefCharRange {
+  let end = range.end
+  while (end > range.start && /[\s|]/.test(message.charAt(end - 1))) end--
+  return { start: range.start, end }
+}
+
 export interface CefViewerProps {
   message: string
   showComments: boolean
   onShowCommentsChange: (show: boolean) => void
+  onHighlightMessageRange?: (start: number, end: number) => void
 }
+
+type PickedRow =
+  | { kind: 'header'; field: CefHeaderKey }
+  | { kind: 'extension'; key: string }
 
 export default function CefViewer({
   message,
   showComments,
-  onShowCommentsChange
+  onShowCommentsChange,
+  onHighlightMessageRange
 }: CefViewerProps): React.JSX.Element {
   const tableId = useId().replace(/:/g, '')
   const tableDomId = `ceftable-${tableId}`
+  const [pickedRow, setPickedRow] = useState<PickedRow | null>(null)
+  const messageRef = useRef(message)
+  messageRef.current = message
 
   const cef = useMemo(() => prepareCefDisplay(parseCEF(message), DICTIONARY), [message])
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset picked row when the CEF text changes (deps must include message).
+  useEffect(() => {
+    setPickedRow(null)
+  }, [message])
+
+  const pickRangeInMessage = useCallback(
+    (range: CefCharRange | undefined, pick: PickedRow) => {
+      if (!onHighlightMessageRange || !range || range.end <= range.start) return
+      const trimmed =
+        pick.kind === 'extension'
+          ? trimHighlightEnd(messageRef.current, range)
+          : range
+      if (trimmed.end <= trimmed.start) return
+      setPickedRow(pick)
+      onHighlightMessageRange(trimmed.start, trimmed.end)
+    },
+    [onHighlightMessageRange]
+  )
 
   const copyToClipboard = useCallback(async () => {
     const el = document.getElementById(tableDomId)
@@ -55,6 +89,16 @@ export default function CefViewer({
   }, [tableDomId])
 
   const showHeader = Boolean(cef.Version)
+
+  const headerKeys = [
+    'Version',
+    'DeviceVendor',
+    'DeviceProduct',
+    'DeviceVersion',
+    'SignatureID',
+    'Name',
+    'Severity'
+  ] as const satisfies readonly CefHeaderKey[]
 
   const colgroup = (
     <colgroup>
@@ -118,18 +162,24 @@ export default function CefViewer({
                         CEF Header
                       </th>
                     </tr>
-                    {(
-                      [
-                        'Version',
-                        'DeviceVendor',
-                        'DeviceProduct',
-                        'DeviceVersion',
-                        'SignatureID',
-                        'Name',
-                        'Severity'
-                      ] as const
-                    ).map((field) => (
-                      <tr key={field} className="cef-header-field">
+                    {headerKeys.map((field) => (
+                      <tr
+                        key={field}
+                        className={
+                          pickedRow?.kind === 'header' && pickedRow.field === field
+                            ? 'cef-header-field cef-row-picked'
+                            : 'cef-header-field cef-row-interactive'
+                        }
+                        aria-label={`${field}: highlight this field in the event message`}
+                        tabIndex={0}
+                        onClick={() => pickRangeInMessage(cef.headerRanges[field], { kind: 'header', field })}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            pickRangeInMessage(cef.headerRanges[field], { kind: 'header', field })
+                          }
+                        }}
+                      >
                         <th scope="row">{field}</th>
                         <td>
                           <pre>{cef[field] ?? ''}</pre>
@@ -147,7 +197,31 @@ export default function CefViewer({
                   </tr>
                 ) : null}
                 {cef.extensionsSorted.map((ext) => (
-                  <tr key={ext.key} className="cef-extension">
+                  <tr
+                    key={ext.key}
+                    className={
+                      pickedRow?.kind === 'extension' && pickedRow.key === ext.key
+                        ? 'cef-extension cef-row-picked'
+                        : 'cef-extension cef-row-interactive'
+                    }
+                    aria-label={`${ext.key}: highlight this extension in the event message`}
+                    tabIndex={0}
+                    onClick={() =>
+                      pickRangeInMessage(cef.extensionRanges[ext.key], {
+                        kind: 'extension',
+                        key: ext.key
+                      })
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        pickRangeInMessage(cef.extensionRanges[ext.key], {
+                          kind: 'extension',
+                          key: ext.key
+                        })
+                      }
+                    }}
+                  >
                     <th
                       scope="row"
                       title={ext.meta.fullName}
@@ -200,7 +274,31 @@ export default function CefViewer({
                   </tr>
                 ) : null}
                 {cef.extensionsByLabelSorted.map((ext) => (
-                  <tr key={`${ext.label}-${ext.key}`} className="cef-extension-by-label">
+                  <tr
+                    key={`${ext.label}-${ext.key}`}
+                    className={
+                      pickedRow?.kind === 'extension' && pickedRow.key === ext.key
+                        ? 'cef-extension-by-label cef-row-picked'
+                        : 'cef-extension-by-label cef-row-interactive'
+                    }
+                    aria-label={`${ext.label} (${ext.key}): highlight in the event message`}
+                    tabIndex={0}
+                    onClick={() =>
+                      pickRangeInMessage(cef.extensionRanges[ext.key], {
+                        kind: 'extension',
+                        key: ext.key
+                      })
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        pickRangeInMessage(cef.extensionRanges[ext.key], {
+                          kind: 'extension',
+                          key: ext.key
+                        })
+                      }
+                    }}
+                  >
                     <th scope="row">{ext.label}</th>
                     <td>
                       <pre>{pretty(ext.value)}</pre>

@@ -10,9 +10,13 @@ const cefHeaders = [
 
 export type CefHeaderKey = (typeof cefHeaders)[number]
 
+export type CefCharRange = { start: number; end: number }
+
 export type ParsedCef = {
   extensions: Record<string, string>
   errors: string[]
+  headerRanges: Partial<Record<CefHeaderKey, CefCharRange>>
+  extensionRanges: Record<string, CefCharRange>
 } & Partial<Record<CefHeaderKey, string>>
 
 const cefValueEscapeRegex = /\\(.)/g
@@ -53,7 +57,9 @@ function trimExtensionValueTrailingSeparators(raw: string): string {
 export function parseCEF(input: string): ParsedCef {
   const obj: ParsedCef = {
     extensions: {},
-    errors: []
+    errors: [],
+    headerRanges: {},
+    extensionRanges: {}
   }
 
   let i = input.search(/CEF:[0-9]\|/)
@@ -75,6 +81,7 @@ export function parseCEF(input: string): ParsedCef {
         } else {
           obj[cefHeaders[field]] = input.substring(startHeader, i)
         }
+        obj.headerRanges[cefHeaders[field]] = { start: startHeader, end: i }
         i++
         startHeader = i
         field++
@@ -95,6 +102,7 @@ export function parseCEF(input: string): ParsedCef {
     } else {
       obj[cefHeaders[field]] = input.substring(startHeader, i)
     }
+    obj.headerRanges[cefHeaders[field]] = { start: startHeader, end: i }
     return obj
   }
 
@@ -102,6 +110,7 @@ export function parseCEF(input: string): ParsedCef {
   let startKeyValuePair = i
   let startValue = 0
   let foundfirstKeyValueSeparator = false
+  let extKeyStart = 0
 
   while (i < input.length) {
     switch (input[i]) {
@@ -117,18 +126,23 @@ export function parseCEF(input: string): ParsedCef {
         } else {
           if (key in obj.extensions) {
             obj.errors.push(`Duplicate '${key}' extension. Ignoring subsequent instances.`)
-          } else if (quoted) {
-            obj.extensions[key] = trimExtensionValueTrailingSeparators(
-              unescapeCefValue(input.substring(startValue, startKeyValuePair - 1))
-            )
-            quoted = false
           } else {
-            obj.extensions[key] = trimExtensionValueTrailingSeparators(
-              input.substring(startValue, startKeyValuePair - 1)
-            )
+            const pairEnd = startKeyValuePair - 1
+            obj.extensionRanges[key] = { start: extKeyStart, end: pairEnd }
+            if (quoted) {
+              obj.extensions[key] = trimExtensionValueTrailingSeparators(
+                unescapeCefValue(input.substring(startValue, pairEnd))
+              )
+              quoted = false
+            } else {
+              obj.extensions[key] = trimExtensionValueTrailingSeparators(
+                input.substring(startValue, pairEnd)
+              )
+            }
           }
         }
         key = input.substring(startKeyValuePair, i)
+        extKeyStart = startKeyValuePair
         i++
         startValue = i
         break
@@ -144,12 +158,15 @@ export function parseCEF(input: string): ParsedCef {
   if (foundfirstKeyValueSeparator) {
     if (key in obj.extensions) {
       obj.errors.push(`Duplicate '${key}' extension. Ignoring subsequent instances.`)
-    } else if (quoted) {
-      obj.extensions[key] = trimExtensionValueTrailingSeparators(
-        unescapeCefValue(input.substring(startValue, i))
-      )
     } else {
-      obj.extensions[key] = trimExtensionValueTrailingSeparators(input.substring(startValue, i))
+      obj.extensionRanges[key] = { start: extKeyStart, end: i }
+      if (quoted) {
+        obj.extensions[key] = trimExtensionValueTrailingSeparators(
+          unescapeCefValue(input.substring(startValue, i))
+        )
+      } else {
+        obj.extensions[key] = trimExtensionValueTrailingSeparators(input.substring(startValue, i))
+      }
     }
   }
 

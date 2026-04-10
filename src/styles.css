@@ -243,6 +243,11 @@ body {
   color: var(--ev-c-text-3);
 }
 
+.app-cef-input::selection {
+  background: #ffeb3b;
+  color: #1a1a1a;
+}
+
 .app-cef-input:focus {
   outline: none;
   box-shadow: inset 0 0 0 2px var(--cef-primary);

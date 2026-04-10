@@ -161,6 +161,20 @@
   background-color: var(--cef-row-hover);
 }
 
+.cef-table tbody tr.cef-row-interactive {
+  cursor: pointer;
+}
+
+.cef-table tbody tr.cef-row-picked td,
+.cef-table tbody tr.cef-row-picked th[scope='row'] {
+  background-color: var(--cef-row-picked, rgba(21, 101, 192, 0.12));
+}
+
+.cef-table tbody tr.cef-row-picked:hover td,
+.cef-table tbody tr.cef-row-picked:hover th[scope='row'] {
+  background-color: var(--cef-row-picked-hover, rgba(21, 101, 192, 0.18));
+}
+
 .cef-table thead .cef-header-row th {
   position: sticky;
   top: 0;
